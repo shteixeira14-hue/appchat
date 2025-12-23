@@ -15,13 +15,13 @@ export function CalendarCards({ days, onTimeSlotClick }: CalendarCardsProps) {
   };
 
   return (
-    <div className="overflow-x-auto mt-3 -mx-4 px-4 scrollbar-thin">
-      <div className="flex gap-3 pb-2" style={{ minWidth: "max-content" }}>
+    <div className="overflow-x-auto mt-3 -mx-3 px-3 sm:-mx-4 sm:px-4 scrollbar-thin">
+      <div className="flex gap-3 pb-2 md:gap-4" style={{ minWidth: "max-content" }}>
         {days.map((day) => (
           <div
             key={day.date}
             className={cn(
-              "bg-card border border-border rounded-xl p-4 flex-shrink-0 w-[200px]",
+              "bg-card border border-border rounded-xl p-3 sm:p-4 flex-shrink-0 w-[180px] xs:w-[190px] sm:w-[200px]",
               "hover:border-primary/30 transition-all duration-300"
             )}
           >
