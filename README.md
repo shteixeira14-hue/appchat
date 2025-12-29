@@ -1,3 +1,9 @@
+## subir nova versão ##
+
+git status
+git add .
+git commit -m "nome do commit"
+
 ## HNEX - Agenda
 
 Sistema de agendamento com interface de chat interativa integrada ao n8n.

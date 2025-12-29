@@ -54,6 +54,20 @@ export interface ProfessionalsData {
   professionals: Professional[];
 }
 
+export interface AppointmentService {
+  id: string;
+  nome: string;
+  data: string;
+  profissional: string;
+  status: string;
+}
+
+export interface AppointmentsData {
+  type: "agendamentos";
+  title: string;
+  services: AppointmentService[];
+}
+
 export interface Message {
   id: string;
   content: string;
@@ -63,6 +77,7 @@ export interface Message {
   calendarData?: CalendarData;
   optionsData?: OptionsData;
   professionalsData?: ProfessionalsData;
+  appointmentsData?: AppointmentsData;
 }
 
 export interface FlowData {
@@ -71,6 +86,7 @@ export interface FlowData {
   Serviço?: string;
   DataAgendamento?: string;
   Profissional?: string;
+  Telefone?: string;
 }
 
 // Chave para armazenar dados do fluxo no sessionStorage
@@ -116,6 +132,7 @@ const logFlowData = () => {
   console.log("Serviço:", data.Serviço || "Não selecionado");
   console.log("DataAgendamento:", data.DataAgendamento || "Não selecionado");
   console.log("Profissional:", data.Profissional || "Não selecionado");
+  console.log("Telefone:", data.Telefone || "Não informado");
   console.log("JSON completo:", JSON.stringify(data, null, 2));
   console.groupEnd();
   return data;
@@ -187,18 +204,34 @@ export function useChat() {
   }, []);
 
   // Função para enviar mensagem inicial (invisível ao usuário)
-  const sendInitialMessage = useCallback(async () => {
+  // Aceita opcionalmente o telefone informado na tela inicial
+  const sendInitialMessage = useCallback(async (phone?: string) => {
     try {
       console.log("Enviando mensagem inicial ao webhook...");
+
+       // Se o telefone foi informado, salva no fluxo
+      if (phone && phone.trim()) {
+        saveFlowData({ Telefone: phone.trim() });
+      }
+
+      const flowData = getFlowData();
+
+      const requestBody: Record<string, unknown> = {
+        message: "primeiramensagem",
+        sessionId: sessionId,
+      };
+
+      // Inclui telefone no corpo se já existir nos dados do fluxo
+      if (flowData.Telefone) {
+        requestBody.telefone = flowData.Telefone;
+      }
+
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          message: "primeiramensagem",
-          sessionId: sessionId,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       console.log("Status da resposta:", response.status);
@@ -276,6 +309,25 @@ export function useChat() {
           const botMessage: Message = {
             id: crypto.randomUUID(),
             content: response.message || response.title || "Processamento finalizado!",
+            isUser: false,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, botMessage]);
+        } else if (typeof response === "object" && response.type === "agendamentos") {
+          // Lista de agendamentos do cliente
+          const botMessage: Message = {
+            id: crypto.randomUUID(),
+            content: response.title || "Meus agendamentos:",
+            isUser: false,
+            timestamp: new Date(),
+            appointmentsData: response as any, // tipado corretamente em AppointmentsData
+          };
+          setMessages((prev) => [...prev, botMessage]);
+        } else if (typeof response === "object" && response.type === "sem_agendamentos") {
+          // Caso sem agendamentos: apenas texto informativo
+          const botMessage: Message = {
+            id: crypto.randomUUID(),
+            content: response.text || "Você não possui agendamentos no momento.",
             isUser: false,
             timestamp: new Date(),
           };
@@ -430,6 +482,7 @@ export function useChat() {
         }
 
         // Prepara o body da requisição para outros tipos de mensagem
+        const flowData = getFlowData();
         const requestBody: {
           message: string;
           sessionId: string;
@@ -437,10 +490,17 @@ export function useChat() {
           opcao?: string;
           professional?: string;
           profselecionado?: string;
+          telefone?: string;
+          consullta?: boolean;
         } = {
           message: content,
           sessionId: sessionId,
         };
+
+        // Inclui telefone em todas as mensagens se já tiver sido informado
+        if (flowData.Telefone) {
+          requestBody.telefone = flowData.Telefone;
+        }
 
         // Adiciona o parâmetro "serviço" se for um clique em serviço
         if (isService) {
@@ -448,8 +508,7 @@ export function useChat() {
           // Armazena o serviço
           saveFlowData({ Serviço: content });
           
-          // Busca o profissional armazenado e adiciona ao requestBody se existir
-          const flowData = getFlowData();
+          // Usa o profissional armazenado e adiciona ao requestBody se existir
           if (flowData.Profissional) {
             requestBody.profselecionado = flowData.Profissional;
           }
@@ -458,6 +517,12 @@ export function useChat() {
         // Adiciona o parâmetro "opcao" se for um clique em opção
         if (isOption) {
           requestBody.opcao = opcaoValue || content;
+
+          // Se for a opção "Meus agendamentos" (opcaoValue = "meus"),
+          // adiciona o parâmetro "consullta" ao JSON para o n8n tratar como consulta
+          if ((opcaoValue || content) === "meus") {
+            requestBody.consullta = true;
+          }
         }
 
         // Adiciona o parâmetro "professional" se for um clique em profissional
@@ -551,6 +616,25 @@ export function useChat() {
             const botMessage: Message = {
               id: crypto.randomUUID(),
               content: response.message || response.title || "Processamento finalizado!",
+              isUser: false,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, botMessage]);
+          } else if (typeof response === "object" && response.type === "agendamentos") {
+            // Lista de agendamentos do cliente
+            const botMessage: Message = {
+              id: crypto.randomUUID(),
+              content: response.title || "Meus agendamentos:",
+              isUser: false,
+              timestamp: new Date(),
+              appointmentsData: response as any,
+            };
+            setMessages((prev) => [...prev, botMessage]);
+          } else if (typeof response === "object" && response.type === "sem_agendamentos") {
+            // Caso sem agendamentos: apenas texto informativo
+            const botMessage: Message = {
+              id: crypto.randomUUID(),
+              content: response.text || "Você não possui agendamentos no momento.",
               isUser: false,
               timestamp: new Date(),
             };

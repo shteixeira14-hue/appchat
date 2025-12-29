@@ -14,6 +14,8 @@ const Index = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showInitialOverlay, setShowInitialOverlay] = useState(true);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
 
   // Expõe viewFlowData no console do navegador para fácil acesso
   useEffect(() => {
@@ -27,10 +29,15 @@ const Index = () => {
 
   const handleStart = async () => {
     console.log("Botão Iniciar clicado!");
+    if (!phone.trim()) {
+      setPhoneError("Informe seu telefone para continuar.");
+      return;
+    }
+    setPhoneError("");
     setIsInitializing(true);
     try {
       console.log("Chamando sendInitialMessage...");
-      await sendInitialMessage();
+      await sendInitialMessage(phone);
       console.log("Mensagem inicial enviada com sucesso!");
       setShowInitialOverlay(false);
     } catch (error) {
@@ -84,7 +91,7 @@ const Index = () => {
     console.log("Reiniciando chat...");
     restartChat();
     // Após reiniciar, envia a mensagem inicial automaticamente
-    sendInitialMessage();
+    sendInitialMessage(phone);
   };
 
   return (
@@ -101,8 +108,31 @@ const Index = () => {
             </div>
             <h2 className="text-2xl font-semibold text-foreground">Bem-vindo!</h2>
             <p className="text-muted-foreground text-center">
-              Clique no botão abaixo para iniciar o agendamento
+              Informe seu telefone e clique em iniciar para começar o agendamento.
             </p>
+
+            <div className="w-full space-y-2">
+              <label className="text-xs text-muted-foreground block text-left">
+                Telefone
+              </label>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(11) 99999-9999"
+                className={`w-full rounded-xl bg-background/80 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all ${
+                  phoneError
+                    ? "border-red-500 focus:ring-red-500/40 focus:border-red-500"
+                    : "border border-border focus:ring-primary/40 focus:border-primary/60"
+                }`}
+              />
+              {phoneError && (
+                <p className="text-xs text-red-500 mt-1">
+                  {phoneError}
+                </p>
+              )}
+            </div>
             <Button
               onClick={handleStart}
               disabled={isInitializing}
@@ -138,6 +168,7 @@ const Index = () => {
                   calendarData={message.calendarData}
                   optionsData={message.optionsData}
                   professionalsData={message.professionalsData}
+                  appointmentsData={message.appointmentsData}
                   onServiceClick={handleServiceClick}
                   onTimeSlotClick={handleTimeSlotClick}
                   onOptionClick={handleOptionClick}

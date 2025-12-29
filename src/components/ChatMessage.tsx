@@ -4,7 +4,8 @@ import { ServicesCards } from "./ServicesCards";
 import { CalendarCards } from "./CalendarCards";
 import { OptionsCards } from "./OptionsCards";
 import { ProfessionalsCards } from "./ProfessionalsCards";
-import { ServicesData, CalendarData, OptionsData, ProfessionalsData } from "@/hooks/useChat";
+import { AppointmentsData, ServicesData, CalendarData, OptionsData, ProfessionalsData } from "@/hooks/useChat";
+import { AppointmentsCards } from "./AppointmentsCards";
 
 interface ChatMessageProps {
   content: string;
@@ -14,6 +15,7 @@ interface ChatMessageProps {
   calendarData?: CalendarData;
   optionsData?: OptionsData;
   professionalsData?: ProfessionalsData;
+  appointmentsData?: AppointmentsData;
   onServiceClick?: (serviceId: string) => void;
   onTimeSlotClick?: (date: string, time: string) => void;
   onOptionClick?: (optionId: string) => void;
@@ -28,6 +30,7 @@ export function ChatMessage({
   calendarData,
   optionsData,
   professionalsData,
+  appointmentsData,
   onServiceClick,
   onTimeSlotClick,
   onOptionClick,
@@ -61,7 +64,13 @@ export function ChatMessage({
           isUser
             ? "bg-primary text-primary-foreground rounded-br-md hover:shadow-lg hover:shadow-primary/20"
             : "bg-secondary text-secondary-foreground rounded-bl-md border border-border hover:border-primary/30 hover:shadow-md",
-          (servicesData && servicesData.services) || (calendarData && calendarData.days) || (optionsData && optionsData.options) || (professionalsData && professionalsData.professionals) ? "overflow-hidden" : ""
+          (servicesData && servicesData.services) ||
+          (calendarData && calendarData.days) ||
+          (optionsData && optionsData.options) ||
+          (professionalsData && professionalsData.professionals) ||
+          (appointmentsData && appointmentsData.services)
+            ? "overflow-hidden"
+            : ""
         )}
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
@@ -92,6 +101,10 @@ export function ChatMessage({
             professionals={professionalsData.professionals} 
             onProfessionalClick={onProfessionalClick}
           />
+        )}
+        
+        {appointmentsData && appointmentsData.services && (
+          <AppointmentsCards services={appointmentsData.services} />
         )}
         
         {timestamp && (
