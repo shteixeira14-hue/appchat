@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 
 const Index = () => {
-  const { messages, isLoading, isFinished, sendMessage, sendInitialMessage, restartChat, viewFlowData } = useChat();
+  const { messages, isLoading, isFinished, sendMessage, sendInitialMessage, restartChat, finishChat, viewFlowData } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showInitialOverlay, setShowInitialOverlay] = useState(true);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -69,11 +69,20 @@ const Index = () => {
   const handleOptionClick = (optionId: string) => {
     if (isFinished) return;
     console.log("Opção selecionada:", optionId);
+    
+    // Se for "Finalizar", envia todos os dados do fluxo com tipomensagem: "final" (igual ao horário)
+    if (optionId === "finalizar" || optionId === "Finalizar") {
+      console.log("✅ Finalizando chat - enviando dados finais...");
+      // Envia uma mensagem especial que será tratada como finalização
+      sendMessage("finalizar", false, true); // isHorario = true para enviar dados finais
+      return;
+    }
+    
     // Mapeia o ID da opção para o valor que será enviado no parâmetro "opcao"
     let opcaoValue = optionId;
     if (optionId === "meus_agendamentos") {
       opcaoValue = "meus";
-    } else if (optionId === "agendar") {
+    } else if (optionId === "agendar" || optionId === "novo_agendamento") {
       opcaoValue = "agendar";
     }
     // Envia o ID da opção como mensagem com o parâmetro "opcao" = valor mapeado

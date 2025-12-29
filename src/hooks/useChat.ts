@@ -203,6 +203,101 @@ export function useChat() {
     }
   }, []);
 
+  // Função auxiliar para processar um item de resposta
+  const processResponseItem = async (
+    item: any,
+    setMessages: React.Dispatch<React.SetStateAction<Message[]>>,
+    sendFinalData: (flowData: FlowData) => Promise<any>,
+    getFlowData: () => FlowData
+  ) => {
+    // Verifica se é uma resposta do tipo serviços
+    if (item.type === "services") {
+      const botMessage: Message = {
+        id: crypto.randomUUID(),
+        content: item.title || "Selecione um serviço:",
+        isUser: false,
+        timestamp: new Date(),
+        servicesData: item as ServicesData,
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } else if (item.type === "calendar") {
+      // Resposta do tipo calendário
+      const botMessage: Message = {
+        id: crypto.randomUUID(),
+        content: item.title || "Selecione o dia e horário:",
+        isUser: false,
+        timestamp: new Date(),
+        calendarData: item as CalendarData,
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } else if (item.type === "options" || item.type === "menu") {
+      // Resposta do tipo opções ou menu (tratados da mesma forma)
+      const botMessage: Message = {
+        id: crypto.randomUUID(),
+        content: item.title || "Selecione uma opção:",
+        isUser: false,
+        timestamp: new Date(),
+        optionsData: { type: "options", title: item.title || "Selecione uma opção:", options: item.options } as OptionsData,
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } else if (item.type === "professionals") {
+      // Resposta do tipo profissionais
+      const botMessage: Message = {
+        id: crypto.randomUUID(),
+        content: item.title || "Selecione um profissional:",
+        isUser: false,
+        timestamp: new Date(),
+        professionalsData: item as ProfessionalsData,
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } else if (item.type === "final") {
+      // Resposta do tipo final - envia dados do fluxo
+      const flowData = getFlowData();
+      // Envia dados finais ao webhook
+      await sendFinalData(flowData);
+      
+      const botMessage: Message = {
+        id: crypto.randomUUID(),
+        content: item.message || item.title || "Processamento finalizado!",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } else if (item.type === "agendamentos") {
+      // Lista de agendamentos do cliente
+      const botMessage: Message = {
+        id: crypto.randomUUID(),
+        content: item.title || "Meus agendamentos:",
+        isUser: false,
+        timestamp: new Date(),
+        appointmentsData: item as AppointmentsData,
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } else if (item.type === "sem_agendamentos") {
+      // Caso sem agendamentos: apenas texto informativo
+      const botMessage: Message = {
+        id: crypto.randomUUID(),
+        content: item.text || "Você não possui agendamentos no momento.",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } else {
+      // Resposta de texto normal
+      const botResponse = typeof item === "string" 
+        ? item 
+        : JSON.stringify(item);
+
+      const botMessage: Message = {
+        id: crypto.randomUUID(),
+        content: botResponse,
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    }
+  };
+
   // Função para enviar mensagem inicial (invisível ao usuário)
   // Aceita opcionalmente o telefone informado na tela inicial
   const sendInitialMessage = useCallback(async (phone?: string) => {
@@ -260,91 +355,16 @@ export function useChat() {
       if (responseData.response) {
         const response = responseData.response;
         
-        // Verifica se é uma resposta do tipo serviços
-        if (typeof response === "object" && response.type === "services") {
-          const botMessage: Message = {
-            id: crypto.randomUUID(),
-            content: response.title || "Selecione um serviço:",
-            isUser: false,
-            timestamp: new Date(),
-            servicesData: response as ServicesData,
-          };
-          setMessages((prev) => [...prev, botMessage]);
-        } else if (typeof response === "object" && response.type === "calendar") {
-          // Resposta do tipo calendário
-          const botMessage: Message = {
-            id: crypto.randomUUID(),
-            content: response.title || "Selecione o dia e horário:",
-            isUser: false,
-            timestamp: new Date(),
-            calendarData: response as CalendarData,
-          };
-          setMessages((prev) => [...prev, botMessage]);
-        } else if (typeof response === "object" && response.type === "options") {
-          // Resposta do tipo opções
-          const botMessage: Message = {
-            id: crypto.randomUUID(),
-            content: response.title || "Selecione uma opção:",
-            isUser: false,
-            timestamp: new Date(),
-            optionsData: response as OptionsData,
-          };
-          setMessages((prev) => [...prev, botMessage]);
-        } else if (typeof response === "object" && response.type === "professionals") {
-          // Resposta do tipo profissionais
-          const botMessage: Message = {
-            id: crypto.randomUUID(),
-            content: response.title || "Selecione um profissional:",
-            isUser: false,
-            timestamp: new Date(),
-            professionalsData: response as ProfessionalsData,
-          };
-          setMessages((prev) => [...prev, botMessage]);
-        } else if (typeof response === "object" && response.type === "final") {
-          // Resposta do tipo final - envia dados do fluxo
-          const flowData = getFlowData();
-          // Envia dados finais ao webhook
-          await sendFinalData(flowData);
-          
-          const botMessage: Message = {
-            id: crypto.randomUUID(),
-            content: response.message || response.title || "Processamento finalizado!",
-            isUser: false,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, botMessage]);
-        } else if (typeof response === "object" && response.type === "agendamentos") {
-          // Lista de agendamentos do cliente
-          const botMessage: Message = {
-            id: crypto.randomUUID(),
-            content: response.title || "Meus agendamentos:",
-            isUser: false,
-            timestamp: new Date(),
-            appointmentsData: response as any, // tipado corretamente em AppointmentsData
-          };
-          setMessages((prev) => [...prev, botMessage]);
-        } else if (typeof response === "object" && response.type === "sem_agendamentos") {
-          // Caso sem agendamentos: apenas texto informativo
-          const botMessage: Message = {
-            id: crypto.randomUUID(),
-            content: response.text || "Você não possui agendamentos no momento.",
-            isUser: false,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, botMessage]);
+        // Se response for um array, processa cada item separadamente
+        if (Array.isArray(response)) {
+          for (const item of response) {
+            if (typeof item === "object" && item.type) {
+              await processResponseItem(item, setMessages, sendFinalData, getFlowData);
+            }
+          }
         } else {
-          // Resposta de texto normal
-          const botResponse = typeof response === "string" 
-            ? response 
-            : JSON.stringify(response);
-
-          const botMessage: Message = {
-            id: crypto.randomUUID(),
-            content: botResponse,
-            isUser: false,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, botMessage]);
+          // Processamento único (retrocompatibilidade)
+          await processResponseItem(response, setMessages, sendFinalData, getFlowData);
         }
       } else {
         console.warn("Resposta do webhook não contém o campo 'response'");
@@ -368,10 +388,12 @@ export function useChat() {
       setIsLoading(true);
 
       try {
-        // Se for um clique em horário, envia todos os dados armazenados
+        // Se for um clique em horário ou finalizar, envia todos os dados armazenados
         if (isHorario) {
-          // Armazena a data de agendamento primeiro
-          saveFlowData({ DataAgendamento: content });
+          // Se não for "finalizar", armazena a data de agendamento
+          if (content !== "finalizar") {
+            saveFlowData({ DataAgendamento: content });
+          }
           
           // Busca todos os dados armazenados
           const flowData = getFlowData();
@@ -419,59 +441,16 @@ export function useChat() {
           if (responseData.response) {
             const response = responseData.response;
             
-            // Verifica se é uma resposta do tipo serviços
-            if (typeof response === "object" && response.type === "services") {
-              const botMessage: Message = {
-                id: crypto.randomUUID(),
-                content: response.title || "Selecione um serviço:",
-                isUser: false,
-                timestamp: new Date(),
-                servicesData: response as ServicesData,
-              };
-              setMessages((prev) => [...prev, botMessage]);
-            } else if (typeof response === "object" && response.type === "calendar") {
-              // Resposta do tipo calendário
-              const botMessage: Message = {
-                id: crypto.randomUUID(),
-                content: response.title || "Selecione o dia e horário:",
-                isUser: false,
-                timestamp: new Date(),
-                calendarData: response as CalendarData,
-              };
-              setMessages((prev) => [...prev, botMessage]);
-            } else if (typeof response === "object" && response.type === "options") {
-              // Resposta do tipo opções
-              const botMessage: Message = {
-                id: crypto.randomUUID(),
-                content: response.title || "Selecione uma opção:",
-                isUser: false,
-                timestamp: new Date(),
-                optionsData: response as OptionsData,
-              };
-              setMessages((prev) => [...prev, botMessage]);
-            } else if (typeof response === "object" && response.type === "professionals") {
-              // Resposta do tipo profissionais
-              const botMessage: Message = {
-                id: crypto.randomUUID(),
-                content: response.title || "Selecione um profissional:",
-                isUser: false,
-                timestamp: new Date(),
-                professionalsData: response as ProfessionalsData,
-              };
-              setMessages((prev) => [...prev, botMessage]);
+            // Se response for um array, processa cada item separadamente
+            if (Array.isArray(response)) {
+              for (const item of response) {
+                if (typeof item === "object" && item.type) {
+                  await processResponseItem(item, setMessages, sendFinalData, getFlowData);
+                }
+              }
             } else {
-              // Resposta de texto normal
-              const botResponse = typeof response === "string" 
-                ? response 
-                : JSON.stringify(response);
-
-              const botMessage: Message = {
-                id: crypto.randomUUID(),
-                content: botResponse,
-                isUser: false,
-                timestamp: new Date(),
-              };
-              setMessages((prev) => [...prev, botMessage]);
+              // Processamento único (retrocompatibilidade)
+              await processResponseItem(response, setMessages, sendFinalData, getFlowData);
             }
           } else {
             throw new Error("Resposta não contém o campo 'response'");
@@ -567,91 +546,16 @@ export function useChat() {
         if (responseData.response) {
           const response = responseData.response;
           
-          // Verifica se é uma resposta do tipo serviços
-          if (typeof response === "object" && response.type === "services") {
-            const botMessage: Message = {
-              id: crypto.randomUUID(),
-              content: response.title || "Selecione um serviço:",
-              isUser: false,
-              timestamp: new Date(),
-              servicesData: response as ServicesData,
-            };
-            setMessages((prev) => [...prev, botMessage]);
-          } else if (typeof response === "object" && response.type === "calendar") {
-            // Resposta do tipo calendário
-            const botMessage: Message = {
-              id: crypto.randomUUID(),
-              content: response.title || "Selecione o dia e horário:",
-              isUser: false,
-              timestamp: new Date(),
-              calendarData: response as CalendarData,
-            };
-            setMessages((prev) => [...prev, botMessage]);
-          } else if (typeof response === "object" && response.type === "options") {
-            // Resposta do tipo opções
-            const botMessage: Message = {
-              id: crypto.randomUUID(),
-              content: response.title || "Selecione uma opção:",
-              isUser: false,
-              timestamp: new Date(),
-              optionsData: response as OptionsData,
-            };
-            setMessages((prev) => [...prev, botMessage]);
-          } else if (typeof response === "object" && response.type === "professionals") {
-            // Resposta do tipo profissionais
-            const botMessage: Message = {
-              id: crypto.randomUUID(),
-              content: response.title || "Selecione um profissional:",
-              isUser: false,
-              timestamp: new Date(),
-              professionalsData: response as ProfessionalsData,
-            };
-            setMessages((prev) => [...prev, botMessage]);
-          } else if (typeof response === "object" && response.type === "final") {
-            // Resposta do tipo final - envia dados do fluxo
-            const flowData = getFlowData();
-            // Envia dados finais ao webhook
-            await sendFinalData(flowData);
-            
-            const botMessage: Message = {
-              id: crypto.randomUUID(),
-              content: response.message || response.title || "Processamento finalizado!",
-              isUser: false,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, botMessage]);
-          } else if (typeof response === "object" && response.type === "agendamentos") {
-            // Lista de agendamentos do cliente
-            const botMessage: Message = {
-              id: crypto.randomUUID(),
-              content: response.title || "Meus agendamentos:",
-              isUser: false,
-              timestamp: new Date(),
-              appointmentsData: response as any,
-            };
-            setMessages((prev) => [...prev, botMessage]);
-          } else if (typeof response === "object" && response.type === "sem_agendamentos") {
-            // Caso sem agendamentos: apenas texto informativo
-            const botMessage: Message = {
-              id: crypto.randomUUID(),
-              content: response.text || "Você não possui agendamentos no momento.",
-              isUser: false,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, botMessage]);
+          // Se response for um array, processa cada item separadamente
+          if (Array.isArray(response)) {
+            for (const item of response) {
+              if (typeof item === "object" && item.type) {
+                await processResponseItem(item, setMessages, sendFinalData, getFlowData);
+              }
+            }
           } else {
-            // Resposta de texto normal
-            const botResponse = typeof response === "string" 
-              ? response 
-              : JSON.stringify(response);
-
-            const botMessage: Message = {
-              id: crypto.randomUUID(),
-              content: botResponse,
-              isUser: false,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, botMessage]);
+            // Processamento único (retrocompatibilidade)
+            await processResponseItem(response, setMessages, sendFinalData, getFlowData);
           }
         } else {
           throw new Error("Resposta não contém o campo 'response'");
@@ -693,6 +597,11 @@ export function useChat() {
     console.log("✅ Chat reiniciado mantendo o mesmo sessionId:", sessionId);
   }, [sessionId]);
 
+  const finishChat = useCallback(() => {
+    console.log("✅ Finalizando chat...");
+    setIsFinished(true);
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -704,5 +613,6 @@ export function useChat() {
     viewFlowData,
     sessionId,
     restartChat,
+    finishChat,
   };
 }
